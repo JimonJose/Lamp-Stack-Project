@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Log in</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="container">
+    <section class="card" aria-labelledby="login-title">
+      <h1 id="login-title">Log in</h1>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="username" class="visually-hidden">Username</label>
+          <input id="username" name="username" type="text" placeholder="Username" required />
+        </div>
+
+        <div class="field">
+          <label for="password" class="visually-hidden">Password</label>
+          <input id="password" name="password" type="password" placeholder="Password" required />
+        </div>
+
+        <button type="submit" class="btn">Log in</button>
+
+        <p class="muted">
+          or, 
+          <a href="#" id="signupLink" role="button" aria-haspopup="dialog" aria-controls="signupDialog">
+            sign up
+          </a>
+        </p>
+
+        <p id="error" role="alert" class="error" hidden></p>
+
+        <!-- Success / error messages near form -->
+        <p id="loginNotice" class="notice" role="status" aria-live="polite" hidden></p>
+      </form>
+    </section>
+  </main>
+
+  <!-- Sign up modal -->
+  <dialog id="signupDialog" class="dialog" aria-labelledby="signupTitle">
+    <form id="signupForm" method="dialog">
+      <h2 id="signupTitle">Create account</h2>
+
+      <div class="field">
+        <label for="suUser" class="visually-hidden">Username</label>
+        <input id="suUser" name="username" type="text" placeholder="Username" required />
+      </div>
+
+      <div class="field">
+        <label for="suPass" class="visually-hidden">Password</label>
+        <input id="suPass" name="password" type="password" placeholder="Password" minlength="6" required />
+      </div>
+
+      <div class="field">
+        <label for="suConfirm" class="visually-hidden">Confirm password</label>
+        <input id="suConfirm" name="confirm" type="password" placeholder="Confirm password" minlength="6" required />
+      </div>
+
+      <p id="signupError" class="error" role="alert" hidden></p>
+
+      <menu class="dialog-actions">
+        <button type="button" id="suCancel" class="btn outline">Cancel</button>
+        <button type="submit" class="btn">Create account</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script>
+    // Demo-only JS: basic validation + fake submit
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const u = e.target.username.value.trim();
+      const p = e.target.password.value.trim();
+      const err = document.getElementById('error');
+      if (!u || !p) {
+        err.textContent = 'Please enter username and password.';
+        err.hidden = false;
+        return;
+      }
+      err.hidden = true;
+      // TODO: replace with real AJAX call to backend
+      console.log('POST /login', { username: u, password: p });
+    });
+  </script>
+  <script>
+    const signupLink  = document.getElementById('signupLink');
+    const signupDlg   = document.getElementById('signupDialog');
+    const signupForm  = document.getElementById('signupForm');
+    const suUser      = document.getElementById('suUser');
+    const suPass      = document.getElementById('suPass');
+    const suConfirm   = document.getElementById('suConfirm');
+    const suCancel    = document.getElementById('suCancel');
+    const loginNotice = document.getElementById('loginNotice');
+
+    // open modal
+    signupLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      signupForm.reset();
+      signupDlg.showModal();
+      setTimeout(() => suUser.focus(), 0);
+    });
+
+    // close modal
+    suCancel.addEventListener('click', () => signupDlg.close());
+    signupDlg.addEventListener('cancel', () => signupForm.reset()); // Esc key
+
+    // return focus to trigger when closed
+    signupDlg.addEventListener('close', () => signupLink.focus());
+
+    // simple validation + success message (front-end only)
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const u = suUser.value.trim();
+      const p = suPass.value.trim();
+      const c = suConfirm.value.trim();
+
+      if (!u || !p || !c) return;
+      if (p.length < 6)  { showSignupError('Password must be at least 6 characters.'); return; }
+      if (p !== c)       { showSignupError('Passwords do not match.'); return; }
+
+      signupDlg.close();
+      showMsg('Account created. You can log in now.');
+      // When backend is ready: POST /signup, then redirect or prefill username
+      // localStorage.setItem('username', u); window.location.href = 'app.html';
+    });
+
+    function showSignupError(text) {
+      const err = document.getElementById('signupError');
+      err.textContent = text;
+      err.hidden = false;
+    }
+  </script>
+
+</body>
+</html>
