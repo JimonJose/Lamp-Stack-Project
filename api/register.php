@@ -4,48 +4,34 @@ include '../config/db.php';
 include '../config/session.php';
 
 $data = json_decode(file_get_contents("php://input"), true);
-$email = trim($data['email'] ?? '');
-$password = $data['password'] ?? '';
+$username = trim((string)($data['username'] ?? ''));
+$password = (string)($data['password'] ?? '');
 
-// 1. Validate input
-if (empty($email) || empty($password)) {
-    echo json_encode(["status" => "error", "message" => "Email and password required"]);
-    exit;
+/* Input validation */
+if ($username === '' || mb_strlen($username) > 100 || !preg_match('/^[A-Za-z0-9._-]{3,100}$/', $username)) {
+    echo json_encode(["status" => "error", "message" => "Invalid username"]); exit;
+}
+if (mb_strlen($password) < 8 || mb_strlen($password) > 200) {
+    echo json_encode(["status" => "error", "message" => "Invalid password"]); exit;
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo json_encode(["status" => "error", "message" => "Invalid email format"]);
-    exit;
-}
-
-if (strlen($name) > 100) {
-    echo json_encode(["status" => "error", "message" => "Name too long"]);
-    exit;
-}
-
-
-// 2. Check for duplicates
-$stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-$stmt->bind_param("s", $email);
+$stmt = $conn->prepare("SELECT UserID FROM Users WHERE Username = ?");
+$stmt->bind_param("s", $username);
 $stmt->execute();
 $stmt->store_result();
-
 if ($stmt->num_rows > 0) {
-    echo json_encode(["status" => "error", "message" => "Email already registered"]);
-    exit;
+    echo json_encode(["status" => "error", "message" => "Username already taken"]); exit;
 }
 
-// 3. Hash the password
 $hash = password_hash($password, PASSWORD_DEFAULT);
-
-// 4. Insert new user
-$stmt = $conn->prepare("INSERT INTO users (email, password) VALUES (?, ?)");
-$stmt->bind_param("ss", $email, $hash);
+$stmt = $conn->prepare("INSERT INTO Users (Username, Password) VALUES (?, ?)");
+$stmt->bind_param("ss", $username, $hash);
 
 if ($stmt->execute()) {
-    echo json_encode(["status" => "success", "user_id" => $stmt->insert_id]);
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int)$stmt->insert_id;
+    echo json_encode(["status" => "success", "user_id" => (int)$stmt->insert_id]);
 } else {
-    echo json_encode(["status" => "error", "message" => "User registration failed: " . $stmt->error]);
+    echo json_encode(["status" => "error", "message" => "Registration failed"]);
 }
-?>
 
