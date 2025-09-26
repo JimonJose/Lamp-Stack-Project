@@ -1,4 +1,14 @@
-<?php
+mysql> DESCRIBE Contacts;
++-------------+--------------+------+-----+---------+----------------+
+| Field       | Type         | Null | Key | Default | Extra          |
++-------------+--------------+------+-----+---------+----------------+
+| ContactID   | int          | NO   | PRI | NULL    | auto_increment |
+| FirstName   | varchar(255) | YES  |     | NULL    |                |
+| LastName    | varchar(255) | YES  |     | NULL    |                |
+| UserID      | int          | YES  | MUL | NULL    |                |
+| PhoneNumber | varchar(255) | YES  |     | NULL    |                |
+| Email       | varchar(255) | YES  |     | NULL    |                |
++-------------+--------------+------+-----+---------+----------------+<?php
 header("Content-Type: application/json");
 include '../../config/db.php';
 include '../../config/auth_check.php';
@@ -6,6 +16,8 @@ include '../../config/auth_check.php';
 $data = json_decode(file_get_contents("php://input"), true);
 $first = trim((string)($data['firstName'] ?? ''));
 $last  = trim((string)($data['lastName'] ?? ''));
+$email = trim((string)($data['email'] ?? ''));
+$phone = trim((string)($data['phone'] ?? ''));
 $user_id = $_SESSION['user_id'];
 
 /* Input validation */
@@ -20,8 +32,15 @@ if (!$nameOk($first) || !$nameOk($last)) {
     echo json_encode(["status" => "error", "message" => "Invalid name characters"]); exit;
 }
 
-$stmt = $conn->prepare("INSERT INTO Contacts (FirstName, LastName, UserID) VALUES (?, ?, ?)");
-$stmt->bind_param("ssi", $first, $last, $user_id);
+if ($email !== '' && (mb_strlen($email) > 100 || !filter_var($email, FILTER_VALIDATE_EMAIL))) {
+    echo json_encode(["status" => "error", "message" => "Invalid email"]); exit;
+}
+if ($phone !== '' && (mb_strlen($phone) > 30 || !preg_match('/^[0-9+\-\s().]{0,30}$/', $phone))) {
+    echo json_encode(["status" => "error", "message" => "Invalid phone"]); exit;
+}
+
+$stmt = $conn->prepare("INSERT INTO Contacts (FirstName, LastName, Email, PhoneNumber, UserID) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("ssssi", $first, $last, $email, $phone, $user_id);
 
 if ($stmt->execute()) {
     echo json_encode(["status" => "success", "contactId" => $stmt->insert_id]);

@@ -13,12 +13,12 @@ $user_id = $_SESSION['user_id'];
 $like = "%$q%";
 
 $stmt = $conn->prepare(
-  "SELECT ContactID, FirstName, LastName
+  "SELECT ContactID, FirstName, LastName, Email, PhoneNumber
      FROM Contacts
     WHERE UserID = ?
-      AND (FirstName LIKE ? OR LastName LIKE ?)"
+      AND (FirstName LIKE ? OR LastName LIKE ? OR Email LIKE ? OR PhoneNumber LIKE ?)"
 );
-$stmt->bind_param("iss", $user_id, $like, $like);
+$stmt->bind_param("issss", $user_id, $like, $like, $like, $like);
 $stmt->execute();
 $res = $stmt->get_result();
 
