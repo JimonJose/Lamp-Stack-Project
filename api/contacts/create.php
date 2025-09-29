@@ -1,14 +1,4 @@
-mysql> DESCRIBE Contacts;
-+-------------+--------------+------+-----+---------+----------------+
-| Field       | Type         | Null | Key | Default | Extra          |
-+-------------+--------------+------+-----+---------+----------------+
-| ContactID   | int          | NO   | PRI | NULL    | auto_increment |
-| FirstName   | varchar(255) | YES  |     | NULL    |                |
-| LastName    | varchar(255) | YES  |     | NULL    |                |
-| UserID      | int          | YES  | MUL | NULL    |                |
-| PhoneNumber | varchar(255) | YES  |     | NULL    |                |
-| Email       | varchar(255) | YES  |     | NULL    |                |
-+-------------+--------------+------+-----+---------+----------------+<?php
+<?php
 header("Content-Type: application/json");
 include '../../config/db.php';
 include '../../config/auth_check.php';
