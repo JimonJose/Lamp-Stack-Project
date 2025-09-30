@@ -32,7 +32,8 @@
         <table class="table" aria-label="Contacts">
           <thead>
             <tr>
-              <th scope="col">Name</th>
+              <th scope="col">First Name</th>
+              <th scope="col">Last Name</th>
               <th scope="col">Email</th>
               <th scope="col">Phone #</th>
               <th scope="col" class="actions-col">Actions</th>
@@ -52,10 +53,15 @@
   <dialog id="contactDialog" class="dialog" aria-labelledby="dialogTitle">
     <form id="contactForm" method="dialog">
       <h2 id="dialogTitle">Add contact</h2>
+      
+      <div class="field">
+        <label for="cFirstName">First Name</label>
+        <input id="cFirstName" name="cFirstName" type="text" required />
+      </div>
 
       <div class="field">
-        <label for="cName">Name</label>
-        <input id="cName" name="name" type="text" required />
+        <label for="cLastName">Last Name</label>
+        <input id="cLastName" name="cLastName" type="text" required />
       </div>
 
       <div class="field">

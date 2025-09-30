@@ -11,16 +11,17 @@ const search      = document.getElementById('search');
 const dialog      = document.getElementById('contactDialog');
 const form        = document.getElementById('contactForm');
 const cId         = document.getElementById('cId');
-const cName       = document.getElementById('cName');
+const cFirstName  = document.getElementById('cFirstName');
+const cLastName   = document.getElementById('cLastName');
 const cEmail      = document.getElementById('cEmail');
 const cPhone      = document.getElementById('cPhone');
 const dialogTitle = document.getElementById('dialogTitle');
 const notice      = document.getElementById('notice');
 const addBtn      = document.getElementById('addBtn');
 const cancelBtn   = document.getElementById('cancelBtn');
-const saveBtn   = document.getElementById('saveBtn');
+const saveBtn     = document.getElementById('saveBtn');
 const logoutBtn   = document.getElementById('logoutBtn');
-const spinner   = document.getElementById('spinner');
+const spinner     = document.getElementById('spinner');
 
 
 function escapeHtml(s){
@@ -85,10 +86,10 @@ function getContacts() {
     }
 }
 
-function addContact(name, email, phone) {
+function addContact(firstName, lastName, email, phone) {
   spinner.hidden = false;
   
-  let tmp = { firstName: name, email: email, phone: phone };
+  let tmp = { firstName: firstName, lastName: lastName, email: email, phone: phone };
   let jsonPayload = JSON.stringify( tmp );
 	let url = urlBase + '/contacts/create.' + extension;
 
@@ -103,7 +104,7 @@ function addContact(name, email, phone) {
     const contactId = jsonObject.contactId;
     
     if (status === "success") {
-      const data = {"ContactID": contactId,"FirstName": name,"LastName":"","Email": email,"PhoneNumber": phone};
+      const data = {"ContactID": contactId,"FirstName": firstName,"LastName": lastName,"Email": email,"PhoneNumber": phone};
       CONTACTS.push(data);
       spinner.hidden = true;
       renderFiltered();
@@ -125,10 +126,10 @@ function addContact(name, email, phone) {
 
 }
 
-function editContact(contactId, name, email, phone) {
+function editContact(contactId, firstName, lastName, email, phone) {
   spinner.hidden = false;
 
-  let tmp = { contactId: contactId, firstName: name, email: email, phone: phone };
+  let tmp = { contactId: contactId, firstName: firstName, lastName: lastName, email: email, phone: phone };
   let jsonPayload = JSON.stringify( tmp );
 	let url = urlBase + '/contacts/update.' + extension;
 
@@ -142,7 +143,7 @@ function editContact(contactId, name, email, phone) {
 		const status = jsonObject.status;
     
     if (status === "success") {
-      const data = {"ContactID": contactId,"FirstName": name,"LastName":"","Email": email,"PhoneNumber": phone};
+      const data = {"ContactID": contactId,"FirstName": firstName,"LastName": lastName,"Email": email,"PhoneNumber": phone};
       CONTACTS = CONTACTS.map(x => x.ContactID === data.ContactID ? data : x);
       spinner.hidden = true;
       renderFiltered();
@@ -218,6 +219,7 @@ function render(list) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${escapeHtml(c.FirstName)}</td>
+      <td>${escapeHtml(c.LastName)}</td>
       <td>${escapeHtml(c.Email)}</td>
       <td>${escapeHtml(c.PhoneNumber)}</td>
       <td>
@@ -232,6 +234,7 @@ function renderFiltered(){
   const q = (search?.value || '').trim().toLowerCase();
   const filtered = CONTACTS.filter(c =>
     c.FirstName.toLowerCase().includes(q) ||
+    c.LastName.toLowerCase().includes(q) ||
     c.Email.toLowerCase().includes(q) ||
     c.PhoneNumber.toLowerCase().includes(q)
   );
@@ -266,7 +269,7 @@ if (addBtn) {
     form.reset();
     dialog.showModal();
     // Focus first field after dialog opens
-    setTimeout(() => cName?.focus(), 0);
+    setTimeout(() => cFirstName?.focus(), 0);
   });
 }
 
@@ -291,9 +294,9 @@ rows.addEventListener('click', (e) => {
     if (!c) return;
     dialogTitle.textContent = 'Edit contact';
     cId.value = c.ContactID;
-    cName.value = c.FirstName; cEmail.value = c.Email; cPhone.value = c.PhoneNumber;
+    cFirstName.value = c.FirstName; cLastName.value = c.LastName; cEmail.value = c.Email; cPhone.value = c.PhoneNumber;
     dialog.showModal();
-    setTimeout(() => cName?.focus(), 0);
+    setTimeout(() => cFirstName?.focus(), 0);
   } else if (delId) {
     if (!confirm('Delete this contact?')) return;
     deleteContact(Number(delId));
@@ -306,13 +309,14 @@ form.addEventListener('submit', (e) => {
   e.preventDefault();
   const data = {
     id: cId.value ? Number(cId.value) : Date.now(),
-    name: (cName.value || '').trim(),
+    firstName: (cFirstName.value || '').trim(),
+    lastName: (cLastName.value || '').trim(),
     email: (cEmail.value || '').trim(),
     phone: (cPhone.value || '').trim()
   };
 
   // Basic validation
-  if (!data.name || !data.email || !data.phone) {
+  if (!data.firstName || !data.lastName || !data.email || !data.phone) {
     if (notice) {
       notice.hidden = false;
       notice.textContent = 'Please fill out name, email, and phone.';
@@ -321,9 +325,9 @@ form.addEventListener('submit', (e) => {
   }
 
   if (cId.value) {
-    editContact(data.id, data.name, data.email, data.phone);
+    editContact(data.id, data.firstName, data.lastName, data.email, data.phone);
   } else {
-    addContact(data.name, data.email, data.phone);
+    addContact(data.firstName, data.lastName, data.email, data.phone);
   }
 
   dialog.close();
