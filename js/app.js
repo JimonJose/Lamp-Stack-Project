@@ -1,16 +1,8 @@
-
-// Demo data + persistence ----------------------------------------------------------------------------------------------------
+const urlBase = 'https://pcm-pro.net/api';
+const extension = 'php';
+let userId = 0;
 let CONTACTS = [
-  { id: 1, name: "Alice Johnson", email: "alice@demo.com", phone: "123-4567" },
-  { id: 2, name: "Alan Smith",   email: "alan@demo.com",  phone: "555-9876" },
-  { id: 3, name: "Mia Lee",      email: "mia@demo.com",   phone: "404-1122" },
 ];
-
-// Load saved contacts if present (for demo) ----------------------------------------------------------------------------------------------------
-try {
-  const saved = JSON.parse(localStorage.getItem('contacts'));
-  if (Array.isArray(saved) && saved.length) CONTACTS = saved;
-} catch (_) { /* ignore */ }
 
 
 // Element refs (with guards) ----------------------------------------------------------------------------------------------------
@@ -26,16 +18,186 @@ const dialogTitle = document.getElementById('dialogTitle');
 const notice      = document.getElementById('notice');
 const addBtn      = document.getElementById('addBtn');
 const cancelBtn   = document.getElementById('cancelBtn');
+const saveBtn   = document.getElementById('saveBtn');
 const logoutBtn   = document.getElementById('logoutBtn');
+const spinner   = document.getElementById('spinner');
 
-
-// Utilities
-function saveContacts() {
-  try { localStorage.setItem('contacts', JSON.stringify(CONTACTS)); } catch (_) {}
-}
 
 function escapeHtml(s){
   return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// CRUD Operations ----------------------------------------------------------------------------------------------------
+function getCurrentUser() {
+	
+  let url = urlBase + '/get_current_user.' + extension;
+
+  let xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+  try {
+  xhr.onreadystatechange = function()  {
+    if (this.readyState == 4 && this.status == 200)  {
+    let jsonObject = JSON.parse( xhr.responseText );
+    let status = jsonObject.status;
+    const user = jsonObject.user;
+		
+    if( status === "error" ) {	
+      window.location.href = "index.html";
+      }
+    const username = document.getElementById('username');
+    username.textContent = user.Username;
+    }
+    };
+    xhr.send();
+ 	  }
+    catch(err)
+    {
+      window.location.href = "index.html";
+    }
+
+}
+
+function getContacts() {
+  spinner.hidden = false;
+  
+  let url = urlBase + '/contacts/read.' + extension;
+
+  let xhr = new XMLHttpRequest();
+  xhr.open("GET", url, true);
+  xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+  try {
+  xhr.onreadystatechange = function()  {
+    if (this.readyState == 4 && this.status == 200)  {
+    let jsonObject = JSON.parse( xhr.responseText );
+		
+    CONTACTS = [...jsonObject];
+    spinner.hidden = true;
+    renderFiltered();
+    }
+    };
+    xhr.send();
+ 	  }
+    catch(_)
+    {
+      /* ignore */
+      spinner.hidden = true;
+    }
+}
+
+function addContact(name, email, phone) {
+  spinner.hidden = false;
+  
+  let tmp = { firstName: name, email: email, phone: phone };
+  let jsonPayload = JSON.stringify( tmp );
+	let url = urlBase + '/contacts/create.' + extension;
+
+  let xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+  try {
+  xhr.onreadystatechange = function()  {
+    if (this.readyState == 4 && this.status == 200)  {
+    let jsonObject = JSON.parse( xhr.responseText );
+		const status = jsonObject.status;
+    const contactId = jsonObject.contactId;
+    
+    if (status === "success") {
+      const data = {"ContactID": contactId,"FirstName": name,"LastName":"","Email": email,"PhoneNumber": phone};
+      CONTACTS.push(data);
+      spinner.hidden = true;
+      renderFiltered();
+      renderNotice('Contact saved.');
+    }
+    else {
+      const message = jsonObject.message;
+      renderNotice(message);
+      spinner.hidden = true;
+    }
+    }
+    };
+    xhr.send(jsonPayload);
+ 	  }
+    catch(_)
+    {
+      /* ignore */
+    }
+
+}
+
+function editContact(contactId, name, email, phone) {
+  spinner.hidden = false;
+
+  let tmp = { contactId: contactId, firstName: name, email: email, phone: phone };
+  let jsonPayload = JSON.stringify( tmp );
+	let url = urlBase + '/contacts/update.' + extension;
+
+  let xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+  try {
+  xhr.onreadystatechange = function()  {
+    if (this.readyState == 4 && this.status == 200)  {
+    let jsonObject = JSON.parse( xhr.responseText );
+		const status = jsonObject.status;
+    
+    if (status === "success") {
+      const data = {"ContactID": contactId,"FirstName": name,"LastName":"","Email": email,"PhoneNumber": phone};
+      CONTACTS = CONTACTS.map(x => x.ContactID === data.ContactID ? data : x);
+      spinner.hidden = true;
+      renderFiltered();
+      renderNotice('Contact edited.');
+    }
+    else {
+      const message = jsonObject.message;
+      renderNotice(message);
+      spinner.hidden = true;
+    }
+    }
+    };
+    xhr.send(jsonPayload);
+ 	  }
+    catch(_)
+    {
+      /* ignore */
+    }
+
+}
+
+function deleteContact(contactId) {
+  spinner.hidden = false;
+
+	let url = urlBase + '/contacts/delete.' + extension + '?contactId=' + contactId;
+
+  let xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+  try {
+  xhr.onreadystatechange = function()  {
+    if (this.readyState == 4 && this.status == 200)  {
+    let jsonObject = JSON.parse( xhr.responseText );
+		const status = jsonObject.status;
+    
+    if (status === "success") {
+      CONTACTS = CONTACTS.filter(x => x.ContactID !== contactId);
+      spinner.hidden = true;
+      renderFiltered();
+      renderNotice('Contact deleted.');
+    }
+    else {
+      const message = jsonObject.message;
+      renderNotice(message);
+      spinner.hidden = true;
+    }
+    }
+    };
+    xhr.send();
+ 	  }
+    catch(_)
+    {
+      /* ignore */
+    }
+
 }
 
 // Rendering ----------------------------------------------------------------------------------------------------
@@ -55,12 +217,12 @@ function render(list) {
   for (const c of list) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHtml(c.name)}</td>
-      <td>${escapeHtml(c.email)}</td>
-      <td>${escapeHtml(c.phone)}</td>
+      <td>${escapeHtml(c.FirstName)}</td>
+      <td>${escapeHtml(c.Email)}</td>
+      <td>${escapeHtml(c.PhoneNumber)}</td>
       <td>
-        <button class="btn small outline" data-edit="${c.id}">Edit</button>
-        <button class="btn small" data-del="${c.id}">Delete</button>
+        <button class="btn small outline" data-edit="${c.ContactID}">Edit</button>
+        <button class="btn small" data-del="${c.ContactID}">Delete</button>
       </td>`;
     rows.appendChild(tr);
   }
@@ -69,11 +231,20 @@ function render(list) {
 function renderFiltered(){
   const q = (search?.value || '').trim().toLowerCase();
   const filtered = CONTACTS.filter(c =>
-    c.name.toLowerCase().includes(q) ||
-    c.email.toLowerCase().includes(q) ||
-    c.phone.toLowerCase().includes(q)
+    c.FirstName.toLowerCase().includes(q) ||
+    c.Email.toLowerCase().includes(q) ||
+    c.PhoneNumber.toLowerCase().includes(q)
   );
   render(filtered);
+}
+
+function renderNotice(text) {
+  // Show a subtle success message
+  if (notice) {
+      notice.hidden = false;
+      notice.textContent = text;
+      setTimeout(() => { if (notice) notice.hidden = true; }, 5000);
+  }
 }
 
 
@@ -116,18 +287,16 @@ rows.addEventListener('click', (e) => {
   const delId  = e.target.dataset?.del;
 
   if (editId) {
-    const c = CONTACTS.find(x => x.id === Number(editId));
+    const c = CONTACTS.find(x => x.ContactID === Number(editId));
     if (!c) return;
     dialogTitle.textContent = 'Edit contact';
-    cId.value = c.id;
-    cName.value = c.name; cEmail.value = c.email; cPhone.value = c.phone;
+    cId.value = c.ContactID;
+    cName.value = c.FirstName; cEmail.value = c.Email; cPhone.value = c.PhoneNumber;
     dialog.showModal();
     setTimeout(() => cName?.focus(), 0);
   } else if (delId) {
     if (!confirm('Delete this contact?')) return;
-    CONTACTS = CONTACTS.filter(x => x.id !== Number(delId));
-    saveContacts();
-    renderFiltered();
+    deleteContact(Number(delId));
   }
 });
 
@@ -152,35 +321,44 @@ form.addEventListener('submit', (e) => {
   }
 
   if (cId.value) {
-    CONTACTS = CONTACTS.map(x => x.id === data.id ? data : x);
+    editContact(data.id, data.name, data.email, data.phone);
   } else {
-    CONTACTS.push(data);
+    addContact(data.name, data.email, data.phone);
   }
 
-  saveContacts();
   dialog.close();
-
-  // Show a subtle success notice
-  if (notice) {
-    notice.hidden = false;
-    notice.textContent = 'Contact saved.';
-    setTimeout(() => { if (notice) notice.hidden = true; }, 1200);
-  }
-
-  renderFiltered();
-
-  // TODO (when backend is ready): replace with real AJAX calls:
-  // await api('/contacts', data, method);
 });
 
 
-// Logout (demo) ----------------------------------------------------------------------------------------------------
+// Logout ----------------------------------------------------------------------------------------------------
 logoutBtn?.addEventListener('click', () => {
-  // Clear demo username if you're storing it
-  localStorage.removeItem('username');
-  location.href = 'index.html';
+	
+  let url = urlBase + '/logout.' + extension;
+
+  let xhr = new XMLHttpRequest();
+  xhr.open("POST", url, true);
+  xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+  try {
+  xhr.onreadystatechange = function()  {
+    if (this.readyState == 4 && this.status == 200)  {
+    let jsonObject = JSON.parse( xhr.responseText );
+    let status = jsonObject.status;
+		
+    if( status === "success" ) {	
+      window.location.href = "index.html";
+      }
+    }
+    };
+    xhr.send();
+ 	  }
+    catch(_)
+    {
+      /* ignore */
+    }
 });
 
 
 // Initial draw ----------------------------------------------------------------------------------------------------
+getCurrentUser();
+getContacts();
 render(CONTACTS);

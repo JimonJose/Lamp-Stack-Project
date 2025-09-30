@@ -12,7 +12,7 @@
       <header class="app-header">
         <h1 id="app-title">Contacts</h1>
         <div class="spacer"></div>
-        <span class="welcome">Welcome, <strong id="username">Username</strong></span>
+        <span class="welcome">Welcome, <strong id="username"></strong></span>
         <button id="logoutBtn" class="btn outline">Logout</button>
       </header>
 
@@ -38,8 +38,12 @@
               <th scope="col" class="actions-col">Actions</th>
             </tr>
           </thead>
-          <tbody id="rows"></tbody>
+          <tbody id="rows">
+          </tbody>
         </table>
+        <div id="spinner" class="spinner-container" hidden>
+            <div class="spinner"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -66,7 +70,7 @@
 
       <menu class="dialog-actions">
         <button type="button" class="btn outline" id="cancelBtn">Cancel</button>
-        <button type="submit" value="ok" class="btn">Save</button>
+        <button type="submit" value="ok" class="btn" id="saveBtn">Save</button>
       </menu>
 
       <input type="hidden" id="cId" />
