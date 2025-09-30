@@ -67,25 +67,100 @@
       </menu>
     </form>
   </dialog>
-
   <script>
-    // Demo-only JS: basic validation + fake submit
+    // Redirect to home if already logged in
+    const urlBase = 'https://pcm-pro.net/api';
+    const extension = 'php';
+    
+    let userId = 0;
+    function getCurrentUser() {
+	
+    let url = urlBase + '/get_current_user.' + extension;
+
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+    try {
+    xhr.onreadystatechange = function()  {
+      if (this.readyState == 4 && this.status == 200)  {
+      let jsonObject = JSON.parse( xhr.responseText );
+      let status = jsonObject.status;
+		
+      if( status === "success" ) {	
+        window.location.href = "app.html";
+      }
+    }
+    };
+    xhr.send()
+ 	  }
+    catch(_)
+    {
+      /* ignore */
+    }
+
+}
+    
+    getCurrentUser();
+    
+  </script>
+  <script>
+    
+    // Login implementation
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();
       const u = e.target.username.value.trim();
       const p = e.target.password.value.trim();
       const err = document.getElementById('error');
+      const loginNotice = document.getElementById("loginNotice");
+      err.hidden = true;
+      loginNotice.hidden = true;
+      
       if (!u || !p) {
         err.textContent = 'Please enter username and password.';
         err.hidden = false;
         return;
       }
-      err.hidden = true;
-      // TODO: replace with real AJAX call to backend
-      console.log('POST /login', { username: u, password: p });
+      
+     	let tmp = { username: u, password: p };
+	    let jsonPayload = JSON.stringify( tmp );
+	
+	    let url = urlBase + '/login.' + extension;
+
+	    let xhr = new XMLHttpRequest();
+	    xhr.open("POST", url, true);
+	    xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+	    try
+	    {
+		    xhr.onreadystatechange = function() 
+		    {
+			    if (this.readyState == 4 && this.status == 200) 
+			    {
+				    let jsonObject = JSON.parse( xhr.responseText );
+				    let status = jsonObject.status;
+		
+				    if( status === "error" )
+				    {	
+					    loginNotice.textContent = jsonObject.message;
+              loginNotice.hidden = false;
+					    return;
+				    }
+		
+				    userId = jsonObject.user_id;
+	
+				    window.location.href = "app.html";
+			    }
+		    };
+		    xhr.send(jsonPayload);
+  	  }
+	    catch(err)
+	    {
+		    err.textContent = err.message;
+        err.hidden = false;
+	    }
+
     });
-  </script>
-  <script>
+    
+    // Sign up implementation
     const signupLink  = document.getElementById('signupLink');
     const signupDlg   = document.getElementById('signupDialog');
     const signupForm  = document.getElementById('signupForm');
@@ -93,7 +168,6 @@
     const suPass      = document.getElementById('suPass');
     const suConfirm   = document.getElementById('suConfirm');
     const suCancel    = document.getElementById('suCancel');
-    const loginNotice = document.getElementById('loginNotice');
 
     // open modal
     signupLink.addEventListener('click', (e) => {
@@ -116,22 +190,53 @@
       const u = suUser.value.trim();
       const p = suPass.value.trim();
       const c = suConfirm.value.trim();
+      const err = document.getElementById('signupError');
+      err.hidden = true;
 
       if (!u || !p || !c) return;
-      if (p.length < 6)  { showSignupError('Password must be at least 6 characters.'); return; }
+      if (p.length < 8)  { showSignupError('Password must be at least 8 characters.'); return; }
       if (p !== c)       { showSignupError('Passwords do not match.'); return; }
+      
+      let tmp = { username: u, password: p };
+	    let jsonPayload = JSON.stringify( tmp );
+	
+	    let url = urlBase + '/register.' + extension;
 
-      signupDlg.close();
-      showMsg('Account created. You can log in now.');
-      // When backend is ready: POST /signup, then redirect or prefill username
-      // localStorage.setItem('username', u); window.location.href = 'app.html';
+	    let xhr = new XMLHttpRequest();
+	    xhr.open("POST", url, true);
+	    xhr.setRequestHeader("Content-type", "application/json; charset=UTF-8");
+	    try
+	    {
+		    xhr.onreadystatechange = function() 
+		    {
+			    if (this.readyState == 4 && this.status == 200) 
+			    {
+				    let jsonObject = JSON.parse( xhr.responseText );
+				    let status = jsonObject.status;
+		
+				    if( status === "error" )
+				    {	
+					    err.textContent = jsonObject.message;
+              err.hidden = false;
+					    return;
+				    }
+		
+				    userId = jsonObject.user_id;
+	
+				    window.location.href = "app.html";
+                                       
+            signupDlg.close();
+			    }
+		    };
+		    xhr.send(jsonPayload);
+  	  }
+	    catch(err)
+	    {
+		    err.textContent = err.message;
+        err.hidden = false;
+	    }
+
     });
-
-    function showSignupError(text) {
-      const err = document.getElementById('signupError');
-      err.textContent = text;
-      err.hidden = false;
-    }
   </script>
 
 </body>
